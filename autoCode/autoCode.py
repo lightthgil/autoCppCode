@@ -12,10 +12,26 @@ class AutoCode(object) :
     className = "PtpThreadTask"
 
     nameSet = """
-	SIS_t_TASK task;
-	char* name;
-	int *func;
-	UINT num;
+	char *m_taskName;
+	INT m_taskNameLen;
+	
+	INT m_ctlStartIndex;
+	INT m_slvDelayStartIndex;
+	INT m_slvSyncStartIndex;
+	INT m_tcfSynStartIndex;
+	INT m_tcfDelStartIndex;
+	INT m_mstSynStartIndex;
+	INT m_mstDelStartIndex;
+	INT m_mstAnncStartIndex;
+	INT m_p2pPdelStartIndex;
+	INT m_p2pPrspStartIndex;
+	INT m_mntStartIndex;
+	INT m_disStartIndex;
+	INT m_disnetStartIndex;
+	INT m_ucmSynStartIndex;
+	INT m_ucmAnnStartIndex;
+	INT m_ucmDelStartIndex;
+	INT m_ucdStartIndex;
     """
 
     def getNameList(self):
@@ -34,6 +50,7 @@ class AutoCode(object) :
 
         if(formatLower == "char*"):
             outFormat = "%s"
+            outValue = value + "? " + value + " : \"NULL\""
         elif(formatLower[-1] == "*"):
             outFormat = "%p"
         elif(value[0] == "*"):
@@ -48,22 +65,28 @@ class AutoCode(object) :
         elif(formatLower == "ulong64"):
             outFormat = "%llu"
         else:
-            outFormat = "%s"
+            outFormat = "{%s}"
             outValue = value + ".toString()"
 
         return outFormat, outValue
 
     def makeFormat(self):
+        limitNameNum = 5
+        nameSpacing = " "
         outString = "void "
         if self.className:
             outString += self.className + "::"
-        outString += "format()\n{\n"
+        outString += "format()\n{\n\tif(NULL==name)\n\t{\n\t\treturn;\n\t}\n"
         formateList, valueList = self.getNameList()
+        if(len(formateList) > limitNameNum):
+            nameSpacing = "\\n"
         formate, value = self.getPrintFormatValue(formateList[0], valueList[0])
-        outString += "\tname.format(" + "\"" + valueList[0] + " = " + formate + "\",\n"
-        for formateName, valueName in zip(formateList[1:], valueList[1:]):
+        outString += "\tname->format(" + "\"" + valueList[0] + " = " + formate + "," + nameSpacing +"\"\n"
+        for formateName, valueName in zip(formateList[1:-1], valueList[1:-1]):
             formate, value = self.getPrintFormatValue(formateName, valueName)
-            outString += "\t\t\"" + valueName + " = " + formate +"\",\n"
+            outString += "\t\t\"" + valueName + " = " + formate +"," + nameSpacing +"\"\n"
+        formate, value = self.getPrintFormatValue(formateList[-1], valueList[-1])
+        outString += "\t\t\"" + valueList[-1] + " = " + formate +"\", \n"
         for formateName, valueName in zip(formateList[0:-1], valueList[0:-1]):
             formate, value = self.getPrintFormatValue(formateName, valueName)
             outString += "\t\t" + value + ",\n"
