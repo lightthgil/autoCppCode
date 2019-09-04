@@ -9,33 +9,22 @@ import re
 
 class AutoCode(object) :
 
-    className = "PtpThreadTask"
+    className = "CPtpThreadPoolCompany"
 
     nameSet = """
-	char *m_taskName;
-	INT m_taskNameLen;
-	
-	INT m_ctlStartIndex;
-	INT m_slvDelayStartIndex;
-	INT m_slvSyncStartIndex;
-	INT m_tcfSynStartIndex;
-	INT m_tcfDelStartIndex;
-	INT m_mstSynStartIndex;
-	INT m_mstDelStartIndex;
-	INT m_mstAnncStartIndex;
-	INT m_p2pPdelStartIndex;
-	INT m_p2pPrspStartIndex;
-	INT m_mntStartIndex;
-	INT m_disStartIndex;
-	INT m_disnetStartIndex;
-	INT m_ucmSynStartIndex;
-	INT m_ucmAnnStartIndex;
-	INT m_ucmDelStartIndex;
-	INT m_ucdStartIndex;
+	static CPtpSupportCompany *m_s_instance;
+	CPtpSupport m_ptpFpgaSupport;	/* FPGA处理的报文种类 */
+	CPtpSupport m_ptpCpuSupport;	/* CPU协议栈处理的报文种类 */
+	CPtpSupport m_ptpFpgaHandle;	/* FPGA收发的报文种类 */
+	CPtpSupport m_ptpBcmHandle;		/* BCM收发的报文种类 */
+	Boolean m_useOneAnnouceTask;
+
     """
 
     def getNameList(self):
-        nameList = list(filter(None, re.split("[/\\\\,.\-;:`~|<>\s]+", self.nameSet)))
+        nameSubUnuseKey = re.sub('\/\*[\s\S]*?\*\/|\/\/.*$|static|&', '', self.nameSet)   #去掉单行注释、多行注释、无用关键词
+        nameFormatPoint = re.sub('[ \t]+\*', '* ', nameSubUnuseKey) #调整指针符号'*'的位置
+        nameList = list(filter(None, re.split("[/\\\\,.\-;:`~|<>\s]+", nameFormatPoint)))
         formateList = nameList[::2]
         valueList = nameList[1::2]
 
@@ -64,6 +53,9 @@ class AutoCode(object) :
             outFormat = "%lld"
         elif(formatLower == "ulong64"):
             outFormat = "%llu"
+        elif(formatLower == "boolean"):
+            outFormat = "%s"
+            outValue = value + " ? \"True\" : \"False\""
         else:
             outFormat = "{%s}"
             outValue = value + ".toString()"
@@ -99,7 +91,7 @@ class AutoCode(object) :
         outString = "void "
         if self.className:
             outString += self.className + "::"
-        outString += "dump()\n{\n\tprintf(\"%s\", toString());\n}\n"
+        outString += "dump()\n{\n\tprintf(\"%s\\n\", toString());\n}\n"
 
         return outString
 
