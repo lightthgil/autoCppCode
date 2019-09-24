@@ -9,15 +9,71 @@ import re
 
 class AutoCode(object) :
 
-    className = "CPtpThreadPoolCompany"
+    className = "TMsgPtpv3PortDSCfg"
 
     nameSet = """
-	static CPtpSupportCompany *m_s_instance;
-	CPtpSupport m_ptpFpgaSupport;	/* FPGA处理的报文种类 */
-	CPtpSupport m_ptpCpuSupport;	/* CPU协议栈处理的报文种类 */
-	CPtpSupport m_ptpFpgaHandle;	/* FPGA收发的报文种类 */
-	CPtpSupport m_ptpBcmHandle;		/* BCM收发的报文种类 */
-	Boolean m_useOneAnnouceTask;
+    TCmmMsgHdr msghdr;
+	Long IfIndex;
+	Short CfgIndex;
+	Octet Slot;
+	Octet Port;
+	Boolean PortEna;
+	Short DelMech;
+	Short DlrqIntv;
+	Long P2PmeanPDel;
+	Short AnncIntv;
+	Short AnncRcptTmo;
+	Short SyncIntv;
+	Short PdelReqIntv;
+	Octet ManualPortState;
+	Long SpVlanTPID;
+	String SpVlanId;
+	Octet SpVlanPri;
+	Long CeVlanTPID;
+	String CeVlanId;
+	Octet CeVlanPri;
+	Octet PortType;
+	String UcMstIp;
+	Octet StepType;
+	Short DomainNumber;
+	Long SyncAsymmetryDelay;
+	Long DlrqAsymmetryDelay;
+	Long PdlrqAsymmetryDelay;
+	Long PdlrpAsymmetryDelay;
+	Long AsymmetryDelay;
+	Octet EncapMode;
+	Octet DlrqSendMode;
+	ULong Pwid;
+	ULong PwInlabel;
+	ULong PwOutlabel;
+	ULong Lspid;
+	ULong LspInlabel;
+	ULong LspOutlabel;
+	Short DelRespTimeOut;
+	Short WtrTime;
+	Short SyncTimeOut;
+	Octet TxFrameType;
+	Octet Profile;
+	Long NotSlave;
+	Long LocalPriority;
+	Short Duration;
+	Long RESERVE1;
+	Long RESERVE2;
+	Long RESERVE3;
+	Long RESERVE4;
+	Long GMClockClass;
+	Long GMPriority1;
+	Long GMPriority2;
+	Long GMScaleLogVar;
+	Long GMClockAccuracy;
+	Long EnGMClockQuality;
+	Long TimeTrace;
+	Long EnTimeTrace;
+	Long Correction;
+	Long EnCorrection;
+	Octet PortProtocolMode;
+	Boolean PassiveDelReqEn;
+	Boolean ReimburseEn;
 
     """
 
@@ -37,7 +93,7 @@ class AutoCode(object) :
         outValue = value
         formatLower = format.lower()
 
-        if(formatLower == "char*"):
+        if(formatLower in ["char*", "string"]):
             outFormat = "%s"
             outValue = value + "? " + value + " : \"NULL\""
         elif(formatLower[-1] == "*"):
@@ -47,7 +103,7 @@ class AutoCode(object) :
             outValue = value[1:]
         elif(formatLower in ["char", "short", "int", "long"]):
             outFormat = "%d"
-        elif(formatLower in ["uchar", "ushort", "uint", "ulong"]):
+        elif(formatLower in ["octet", "uchar", "ushort", "uint", "ulong"]):
             outFormat = "%u"
         elif(formatLower == "long64"):
             outFormat = "%lld"
@@ -65,25 +121,28 @@ class AutoCode(object) :
     def makeFormat(self):
         limitNameNum = 5
         nameSpacing = " "
+        nameMaxLen = 0
         outString = "void "
         if self.className:
             outString += self.className + "::"
-        outString += "format()\n{\n\tif(NULL==name)\n\t{\n\t\treturn;\n\t}\n"
         formateList, valueList = self.getNameList()
         if(len(formateList) > limitNameNum):
             nameSpacing = "\\n"
+            nameMaxLen = max(map(lambda i: len(i), valueList))
+        outString += "format()\n{\n\tint nameMaxLen = " + str(
+            nameMaxLen) + ";\n\n\tif(NULL==name)\n\t{\n\t\treturn;\n\t}\n"
         formate, value = self.getPrintFormatValue(formateList[0], valueList[0])
-        outString += "\tname->format(" + "\"" + valueList[0] + " = " + formate + "," + nameSpacing +"\"\n"
+        outString += "\tname->format(\"%-*s = " + formate + "," + nameSpacing +"\"\t/* "+ valueList[0] + " */\n"
         for formateName, valueName in zip(formateList[1:-1], valueList[1:-1]):
             formate, value = self.getPrintFormatValue(formateName, valueName)
-            outString += "\t\t\"" + valueName + " = " + formate +"," + nameSpacing +"\"\n"
+            outString += "\t\t\"%-*s = " + formate +"," + nameSpacing +"\"\t\t\t\t/* "+ valueName + " */\n"
         formate, value = self.getPrintFormatValue(formateList[-1], valueList[-1])
-        outString += "\t\t\"" + valueList[-1] + " = " + formate +"\", \n"
+        outString += "\t\t\"%-*s = " + formate +"\",\t\t\t\t/* "+ valueList[-1] + " */\n"
         for formateName, valueName in zip(formateList[0:-1], valueList[0:-1]):
             formate, value = self.getPrintFormatValue(formateName, valueName)
-            outString += "\t\t" + value + ",\n"
+            outString += "\t\tnameMaxLen, \"" + valueName + "\", " + value + ",\n"
         formate, value = self.getPrintFormatValue(formateList[-1], valueList[-1])
-        outString += "\t\t" + value + ");\n}\n"
+        outString += "\t\tnameMaxLen, \"" + valueList[-1] + "\", " + value + ");\n}\n"
 
         return outString
 
